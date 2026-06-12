@@ -41,9 +41,15 @@ jobs:
           ISO=$(ls *.iso 2>/dev/null | head -1)
           echo "iso=$ISO" >> $GITHUB_OUTPUT
 
-      - name: Upload ISO artifact
+          - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-autoinstall-iso
           path: ${{ steps.detect.outputs.iso }}
           retention-days: 7
+
+      - name: Upload to transfer.sh
+        run: |
+          URL=$(curl -s --upload-file "${{ steps.detect.outputs.iso }}" \
+            https://transfer.sh/ubuntu-autoinstall.iso)
+          echo "ССЫЛКА ДЛЯ ПРОВАЙДЕРА: $URL"

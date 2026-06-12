@@ -5,8 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
@@ -16,35 +15,37 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            curl \
-            wget \
             xorriso \
+            squashfs-tools \
+            p7zip-full \
+            wget \
             isolinux \
             syslinux-common \
-            p7zip-full \
-            rsync \
-            whois \
-            fdisk \
-            gdisk \
-            dosfstools \
-            mtools
+            dirmngr \
+            gnupg
+
+      - name: Init GPG home
+        run: |
+          mkdir -p /root/.gnupg
+          chmod 700 /root/.gnupg
+          gpgconf --kill dirmngr || true
+          gpgconf --launch dirmngr
 
       - name: Make script executable
-        run: chmod +x ubuntu-autoinstall-generator.sh
+        run: chmod +x ./ubuntu-autoinstall-generator.sh
 
       - name: Build autoinstall ISO
-        run: |
-          sudo ./ubuntu-autoinstall-generator.sh -a -u user-data.example
+        run: sudo ./ubuntu-autoinstall-generator.sh -a -u user-data.example
 
       - name: Detect generated ISO
+        id: detect
         run: |
-          ISO_FILE=$(find . -type f -name "*.iso" -printf "%T@ %p\n" | sort -n | tail -1 | cut -d' ' -f2-)
-          echo "ISO_FILE=$ISO_FILE" >> $GITHUB_ENV
-          echo "Found ISO: $ISO_FILE"
+          ISO=$(ls ubuntu-autoinstall-*.iso 2>/dev/null | head -1)
+          echo "iso_path=$ISO" >> $GITHUB_OUTPUT
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-autoinstall-iso
-          path: ${{ env.ISO_FILE }}
-          if-no-files-found: error
+          path: ${{ steps.detect.outputs.iso_path }}
+          retention-days: 7

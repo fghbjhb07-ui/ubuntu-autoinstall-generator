@@ -1,0 +1,48 @@
+name: Build Ubuntu autoinstall ISO
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            curl \
+            wget \
+            xorriso \
+            p7zip-full \
+            rsync \
+            whois \
+            fdisk \
+            gdisk \
+            dosfstools \
+            mtools
+
+      - name: Make script executable
+        run: chmod +x ubuntu-autoinstall-generator.sh
+
+      - name: Build autoinstall ISO
+        run: |
+          sudo ./ubuntu-autoinstall-generator.sh -a -u user-data.example
+
+      - name: Detect generated ISO
+        run: |
+          ISO_FILE=$(find . -type f -name "*.iso" -printf "%T@ %p\n" | sort -n | tail -1 | cut -d' ' -f2-)
+          echo "ISO_FILE=$ISO_FILE" >> $GITHUB_ENV
+          echo "Found ISO: $ISO_FILE"
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-autoinstall-iso
+          path: ${{ env.ISO_FILE }}
+          if-no-files-found: error

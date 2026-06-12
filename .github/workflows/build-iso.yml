@@ -3,6 +3,9 @@ name: Build Ubuntu autoinstall ISO
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,39 +20,29 @@ jobs:
           sudo apt-get install -y \
             xorriso \
             isolinux \
-            syslinux-common \
+            syslinux-utils \
             squashfs-tools \
-            dirmngr \
-            gnupg \
+            genisoimage \
             wget \
-            curl
+            p7zip-full
 
-      - name: Init GPG home
+      - name: Build ISO
         run: |
-          mkdir -p ~/.gnupg
-          chmod 700 ~/.gnupg
-
-      - name: Make script executable
-        run: chmod +x build-iso.sh
-
-      - name: Build autoinstall ISO
-        run: sudo bash build-iso.sh
-
-      - name: Detect generated ISO
-        id: detect
-        run: |
-          ISO=$(ls *.iso 2>/dev/null | head -1)
-          echo "iso=$ISO" >> $GITHUB_OUTPUT
+          chmod +x build-iso.sh
+          sudo bash build-iso.sh
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-autoinstall-iso
-          path: ${{ steps.detect.outputs.iso }}
+          path: ./output/ubuntu-autoinstall.iso
           retention-days: 7
 
-      - name: Upload to transfer.sh
-        run: |
-          URL=$(curl -s --upload-file "${{ steps.detect.outputs.iso }}" \
-            https://transfer.sh/ubuntu-autoinstall.iso)
-          echo "ССЫЛКА ДЛЯ ПРОВАЙДЕРА: $URL"
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: iso-${{ github.run_number }}
+          name: "Ubuntu Autoinstall ISO (build ${{ github.run_number }})"
+          files: ./output/ubuntu-autoinstall.iso
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

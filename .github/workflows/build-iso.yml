@@ -19,6 +19,7 @@ jobs:
             curl \
             wget \
             xorriso \
+            isolinux \
             p7zip-full \
             rsync \
             whois \

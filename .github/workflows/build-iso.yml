@@ -16,36 +16,34 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             xorriso \
-            squashfs-tools \
-            p7zip-full \
-            wget \
             isolinux \
             syslinux-common \
+            squashfs-tools \
             dirmngr \
-            gnupg
+            gnupg \
+            wget \
+            curl
 
       - name: Init GPG home
         run: |
-          mkdir -p /root/.gnupg
-          chmod 700 /root/.gnupg
-          gpgconf --kill dirmngr || true
-          gpgconf --launch dirmngr
+          mkdir -p ~/.gnupg
+          chmod 700 ~/.gnupg
 
       - name: Make script executable
-        run: chmod +x ./ubuntu-autoinstall-generator.sh
+        run: chmod +x build-iso.sh
 
       - name: Build autoinstall ISO
-        run: sudo ./ubuntu-autoinstall-generator.sh -a -u user-data.example
+        run: sudo bash build-iso.sh
 
       - name: Detect generated ISO
         id: detect
         run: |
-          ISO=$(ls ubuntu-autoinstall-*.iso 2>/dev/null | head -1)
-          echo "iso_path=$ISO" >> $GITHUB_OUTPUT
+          ISO=$(ls *.iso 2>/dev/null | head -1)
+          echo "iso=$ISO" >> $GITHUB_OUTPUT
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: ubuntu-autoinstall-iso
-          path: ${{ steps.detect.outputs.iso_path }}
+          path: ${{ steps.detect.outputs.iso }}
           retention-days: 7
